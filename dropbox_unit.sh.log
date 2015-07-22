@@ -1,0 +1,62 @@
+Runtime: 2015-07-22 19:47:03
+GNU bash, version 4.3.39(1)-release (x86_64-unknown-linux-gnu)
+Note: some tests fail because dropbox is unreliable. Run them again individually.
+Success: Single file upload to root
+Success: Single file upload to a different file
+Success: Single file upload to a different file in a folder
+Success: Folder upload to root
+Success: Folder upload to folder
+Success: Folder upload over file
+Success: Multi file upload to root, non recursive
+Success: Multi file upload to root series a, recursive
+Success: Multi file upload to root series b, recursive and overwrite
+Success: Multi file upload to root series c, deep recursive and overwrite
+Success: Multi file upload to root series [FG], recursive
+Success: Multi file upload to ERR folder series b
+Success: Multi file upload to DIR/ folder series b
+Success: Multi inner file upload to DIR/ folder series [FG]
+Success: Multi file upload skip to DIR/ folder series b
+Success: Upload all for download test
+Success: dl-Download single file to new file in root
+Success: fi-Download single file to new file in root
+Success: dl-Download single file with new name to existing file in root
+Success: fi-Download single file with new name to existing file in root
+Success: dl-Download non exist file
+Success: dl-Download single file to access denied root file
+Success: dl-Download single file to access denied root file new name
+Success: dl-Download single file to access denied root folder
+Success: dl-Download folder to access denied root folder
+Success: dl-Download single file to existing file in root
+Success: fi-Download single file to existing file in root
+Success: dl-Download single file to accidentally overwrite an existing folder
+Success: fi-Download single file to accidentally overwrite an existing folder
+Success: dl-Download single file to overwrite an existing file/
+Success: fi-Download single file to overwrite an existing file/
+Success: dl-Download single file to new folder/
+Success: fi-Download single file to new folder/
+Success: dl-Download single file to existing folder
+Success: fi-Download single file to existing folder
+Success: dl-Download single file to existing folder/
+Success: fi-Download single file to existing folder/
+Success: dl-Download full single folder to a new folder
+Success: fi-Download full single folder to a new folder
+Success: dl-Download full single folder to a new folder/
+Success: fi-Download full single folder to a new folder/
+Success: dl-Download empty single folder to a new folder
+Success: fi-Download empty single folder to a new folder
+Success: dl-Download empty single folder to a new folder/
+Success: fi-Download empty single folder to a new folder/
+Success: dl-Download single file a new folder/
+Success: fi-Download single file a new folder/
+Success: dl-Download single file to existing folder/
+Success: fi-Download single file to existing folder/
+Success: dl-Download glob series F non recursive
+Success: fi-Download glob series F non recursive
+Success: dl-Download glob series F recursive
+Success: fi-Download glob series F recursive
+Success: dl-Download series F non recursive no overwrite
+Success: fi-Download series F non recursive no overwrite
+Success: dl-Download glob no files non recursive
+Success: fi-Download glob no files non recursive
+Success: dl-Download glob no files recursive
+Success: fi-Download glob no files recursive
