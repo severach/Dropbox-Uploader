@@ -1,6 +1,43 @@
 # CHANGELOG
 
-## Version 0.15 - 08 Jun 2015
+# Commit: More help, logging, glob, delete on put/get, unit tests
+## Version 0.15c - 22 Jul 2015 (CJS)
+# Add: Code changes from 0.14 (AF) to 0.15 (AF)
+# FIX: Most [[ ]] changed to [ ]. set -x output for [[ == 'string' ]] was unreadable.
+# ADD: Unit testing for glob and recursion.
+# FIX: Unit testing prompted many fixes to path and file handling.
+# TODO: Retry for upload and maybe download. Logs show that the dropbox service has poor availability.
+
+## Version 0.14c - 08 Jun 2015 (CJS)
+# FIX: Indent changed to 2 spaces
+# FIX: dropShell.sh: Cleaned up all dropShell.sh code
+# ADD: dropShell.sh: Per command help
+# ADD: dropShell.sh: display command to help user learn how to use dropbox-uploader
+# FIX: dropShell.sh: smarter normalize_path to cut lots of code
+# ADD: dropShell.sh: new command less file
+# ADD: dropShell.sh: sends all command line options to dropbox-uploader
+# FIX: dropShell.sh: globbing no longer done here.
+# FIX: Standardized "${VAR}" and "'quoting'"
+# FIX: Fixed all syntax highlighting for Midnight Commander editor
+# FIX: set -u to find missing vars
+# FIX: Improved chunk calculations
+# FIX: Improved which/command -v bin detection
+# ADD: Issue #211: option -E to delete on upload/download
+# ADD: Issue #181: option -u short url option
+# FIX: simplified file_size() with case
+# FIX: Unlink without active account does not first force signup
+# ADD: Branding
+# ADD: globbing on put/upload
+# FIX: Improved path handling in normalize_path
+# ADD: globbing on get/download
+# FIX: Improved recursion reliability
+# FIX: Improved /tmp/ reliability for multi user
+# FIX: No more rm -fr. recurse delete is too dangerous
+# ADD: Option -r must now be specifed explicitly, no more recursion by default
+# FIX: Avoid db_stat on upload without -s, glob, or folder target ending in /
+# ADD: Option -L logging
+
+## Version 0.15 - 08 Jun 2015 (AF)
 * Fix issue #163, List only show folders but not files
 * Fix issue #168, Share call not returning a share link
 * Fix issue #172, list command always return an unnamed dir on an empty directory

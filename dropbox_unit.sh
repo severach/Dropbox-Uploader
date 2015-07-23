@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
 
 # Copyright (C) 2015 Chris Severance aur.severach spamgourmet com
 #
@@ -39,7 +39,7 @@
 # Script errors are not detected. Watch the screen.
 
 set -u
-DROPBOXAC='ccs.dropbox'
+DROPBOXAC='unit.dropbox'
 #http://stackoverflow.com/questions/407523/escape-a-string-for-a-sed-replace-pattern
 DROPBOXACESC="$(sed -e 's/[]\/$*.^|[]/\\&/g' <<< "${DROPBOXAC}")" # This is set up for / as the s/ delimiter
 PWD="`pwd`"
@@ -55,12 +55,6 @@ if [ "${EUID}" -eq 0 ]; then
   exit 1
 fi
 
-if [ "$1" = 'Download' -o "$1" = 'Upload' ] && [ $# -ne 1 ]; then
-  echo "Download and upload must be specified alone"
-  echo "Did you forget to quote?"
-  exit 1
-fi
-
 #Dependencies check
 for i in md5sum sed; do
   command -v "${i}" >/dev/null 2>&1 || {
@@ -70,6 +64,12 @@ for i in md5sum sed; do
 done
 unset i
 set +u
+if [ "$1" = 'Download' -o "$1" = 'Upload' ] && [ $# -ne 1 ]; then
+  echo "Download and upload must be specified alone"
+  echo "Did you forget to quote?"
+  exit 1
+fi
+
 TTRUN="$1"
 set -u
 
@@ -122,6 +122,9 @@ _fn_dirchklog() {
 
 
 rm -f "$0."{tmp,log}
+echo "Runtime: $(date +"%F %T")" >> "$0.log"
+echo "$(bash --version | head -n1)" >> "$0.log"
+echo 'Note: some tests fail because dropbox is unreliable. Run them again individually.' >> "$0.log"
 rm -rf dropbox_unit
 mkdir -p 'dropbox_unit'
 if pushd 'dropbox_unit'; then
