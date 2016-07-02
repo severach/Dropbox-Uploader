@@ -1,9 +1,7 @@
-Runtime: 2015-07-22 19:47:03
-GNU bash, version 4.3.39(1)-release (x86_64-unknown-linux-gnu)
-Note: some tests fail because dropbox is unreliable. Run them again individually.
 Success: Single file upload to root
 Success: Single file upload to a different file
 Success: Single file upload to a different file in a folder
+Success: Single file upload to existing folder
 Success: Folder upload to root
 Success: Folder upload to folder
 Success: Folder upload over file
@@ -56,6 +54,8 @@ Success: dl-Download glob series F recursive
 Success: fi-Download glob series F recursive
 Success: dl-Download series F non recursive no overwrite
 Success: fi-Download series F non recursive no overwrite
+Success: dl-Download series bGb deep recursive
+Success: fi-Download series bGb deep recursive
 Success: dl-Download glob no files non recursive
 Success: fi-Download glob no files non recursive
 Success: dl-Download glob no files recursive
