@@ -1773,7 +1773,7 @@ db_setup()
       echo -ne "\n An auth code must be 43 characters long\n"
       continue
     fi
-    if [[ ! "${AUTHCODE}" =~ ^[-0-9a-zA-Z]{43}$ ]]; then
+    if [[ ! "${AUTHCODE}" =~ ^[-0-9a-zA-Z_]{43}$ ]]; then
       echo -ne "\n An auth code must consist of a-z and 0-9 as shown on the DropBox authorize_submit page\n"
       continue
     fi
@@ -1785,13 +1785,14 @@ db_setup()
   "${CURL_BIN}" ${CURL_ACCEPT_CERTIFICATES} -s --show-error --globoff -D "${RESPONSE_FILE}.header" -o "${RESPONSE_FILE}.data" \
     --data "code=${AUTHCODE}&grant_type=authorization_code&client_id=${APPKEY}&client_secret=${APPSECRET}" \
     "${APIV2_REQUEST_TOKEN_URL}" 2> /dev/null
+  CFG_APIVER=0 # block error checking
   check_http_response
   # Sample {"access_token": "ABCDEFG", "token_type": "bearer", "account_id": "dbid:AAH4f99T0taONIb-OurWxbNQ6ywGRopQngc", "uid": "12345"}
   CFG_ACCESS_TOKEN="$(sed -n -e 's/^.\+"access_token": "\([^"]*\)".*$/\1/p' "${RESPONSE_FILE}.data")" # '
 
   if [ -z "${CFG_ACCESS_TOKEN}" ]; then
     echo -ne ' FAILED\n\n Please, check your App key and secret...\n\n'
-    cat "${CFG_ACCESS_TOKEN}.data"
+    cat "${RESPONSE_FILE}.data"
     remove_temp_files
     exit 1
   fi
@@ -1801,7 +1802,7 @@ db_setup()
 # Dropbox configuration for dropbox-uploader
 # Created $(date +'%F %T')
 CFG_APIVER=2
-CFG_ACCESS_TOKEN='${OAUTH_TOKEN}'
+CFG_ACCESS_TOKEN='${CFG_ACCESS_TOKEN}'
 EOF
   echo -ne '\n Setup completed!\n'
   exit ${ERROR_STATUS}
