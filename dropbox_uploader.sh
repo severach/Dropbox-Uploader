@@ -1134,13 +1134,13 @@ db_download_file()
 # $1 number to print. Will be scaled down to print KiB, MiB, GiB, TiB as appropriate
 printmb()
 {
-  if [ "$1" -ge 1000000000000 ]; then
+  if [ "$1" -ge 10000000000000 ]; then
     echo -n "$(($1/1099511627776)) TiB"
-  elif [ "$1" -ge 1000000000 ]; then
+  elif [ "$1" -ge 10000000000 ]; then
     echo -n "$(($1/1073741824)) GiB"
-  elif [ "$1" -ge 1000000 ]; then
+  elif [ "$1" -ge 10000000 ]; then
     echo -n "$(($1/1048576)) MiB"
-  elif [ "$1" -ge 1000 ]; then
+  elif [ "$1" -ge 10000 ]; then
     echo -n "$(($1/1024)) KiB"
   else
     echo -n "$1"
@@ -1199,7 +1199,7 @@ dbtop_account_info()
       local name="$(sed -n 's/.*"display_name": "\([^"]*\).*/\1/p' "${RESPONSE_FILE}.data")"
       echo -e "\n\nName:\t${name}"
 
-      local uid="$(sed -n 's/.*"id": "\([^"]*\)".*/\1/p' "${RESPONSE_FILE}.data")" # '
+      local uid="$(sed -n 's/.*"account_id": "\([^"]*\)".*/\1/p' "${RESPONSE_FILE}.data")" # '
       echo -e "UID:\t${uid}"
 
       local email="$(sed -n 's/.*"email": "\([^"]*\).*/\1/p' "${RESPONSE_FILE}.data")"
