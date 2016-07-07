@@ -83,6 +83,7 @@ APIV2_QUOTA_URL='https://api.dropboxapi.com/2/users/get_space_usage'
 APIV1_MKDIR_URL='https://api.dropbox.com/1/fileops/create_folder'
 APIV2_MKDIR_URL='https://api.dropboxapi.com/2/files/create_folder'
 APIV1_SHARES_URL='https://api.dropbox.com/1/shares'
+APIV2_SHARES_URL='https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings'
 APP_CREATE_URL='https://www.dropbox.com/developers/apps'
 RESPONSE_FILE="${TMP_DIR}/du_resp.$$_${RANDOM}"
 #CHUNK_FILE="${TMP_DIR}/du_chunk.$$_${RANDOM}"
@@ -1650,7 +1651,15 @@ dbtop_share()
 {
   local FILE_DST="$(normalize_path "$1")"
 
-  "${CURL_BIN}" ${CURL_ACCEPT_CERTIFICATES} -s --show-error --globoff -D "${RESPONSE_FILE}.header" -o "${RESPONSE_FILE}.data" "$APIV1_SHARES_URL/${ACCESS_LEVEL}/$(urlencode "${FILE_DST}")?oauth_consumer_key=${APPKEY}&oauth_token=${OAUTH_ACCESS_TOKEN}&oauth_signature_method=PLAINTEXT&oauth_signature=${APPSECRET}%26${OAUTH_ACCESS_TOKEN_SECRET}&oauth_timestamp=$(utime)&oauth_nonce=${RANDOM}&short_url=${SHORT_URL}" 2> /dev/null
+  if [ "${CFG_APIVER}" -eq 1 ]; then
+    "${CURL_BIN}" ${CURL_ACCEPT_CERTIFICATES} -s --show-error --globoff -D "${RESPONSE_FILE}.header" -o "${RESPONSE_FILE}.data" "$APIV1_SHARES_URL/${ACCESS_LEVEL}/$(urlencode "${FILE_DST}")?oauth_consumer_key=${APPKEY}&oauth_token=${OAUTH_ACCESS_TOKEN}&oauth_signature_method=PLAINTEXT&oauth_signature=${APPSECRET}%26${OAUTH_ACCESS_TOKEN_SECRET}&oauth_timestamp=$(utime)&oauth_nonce=${RANDOM}&short_url=${SHORT_URL}" 2> /dev/null
+  elif [ "${CFG_APIVER}" -eq 2 ]; then
+    "${CURL_BIN}" ${CURL_ACCEPT_CERTIFICATES} -X 'POST' -s --show-error --globoff -D "${RESPONSE_FILE}.header" -o "${RESPONSE_FILE}.data" \
+      --header "Authorization: Bearer ${CFG_ACCESS_TOKEN}" \
+      --header 'Content-Type: application/json' \
+      --data '{"path": "'"${FILE_DST}"'","settings": {"requested_visibility": "public"}}' \
+      "${APIV2_SHARES_URL}" 2> /dev/null
+  fi
   check_http_response
 
   #Check
