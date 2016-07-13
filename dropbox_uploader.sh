@@ -90,7 +90,7 @@ RESPONSE_FILE="${TMP_DIR}/du_resp.$$_${RANDOM}"
 #CHUNK_FILE="${TMP_DIR}/du_chunk.$$_${RANDOM}"
 TEMP_FILE="${TMP_DIR}/du_tmp.$$_${RANDOM}"
 BIN_DEPS='sed basename date grep stat dd mkdir'
-VERSION='0.19c'
+VERSION='0.20c'
 # Packagers should sed the following to their distro: Arch Linux, Debian, Red Hat, Ubuntu, Gentoo, ...
 BRANDING=''
 # Packagers should sed the following to the line that installs the ca certs. This line is for Debian Ubuntu
@@ -659,7 +659,8 @@ db_upload_file()
 
 }
 
-#Simple file upload
+#Simple file upload.
+#Because the simple upload ain't so simple, no! (Van Halen)
 #$1 = Local source file
 #$2 = Remote destination file
 db_simple_upload_file()
@@ -684,6 +685,7 @@ db_simple_upload_file()
     if [ "${CFG_APIVER}" -eq 1 ]; then
       "${CURL_BIN}" ${CURL_ACCEPT_CERTIFICATES} ${CURL_PARAMETERS} --globoff -D "${RESPONSE_FILE}.header" -o "${RESPONSE_FILE}.data" --upload-file "${FILE_SRC}" "${APIV1_UPLOAD_URL}/${ACCESS_LEVEL}/$(urlencode "${FILE_DST}")?oauth_consumer_key=${APPKEY}&oauth_token=${OAUTH_ACCESS_TOKEN}&oauth_signature_method=PLAINTEXT&oauth_signature=${APPSECRET}%26${OAUTH_ACCESS_TOKEN_SECRET}&oauth_timestamp=$(utime)&oauth_nonce=${RANDOM}"
     elif [ "${CFG_APIVER}" -eq 2 ]; then
+      rm -f "${RESPONSE_FILE}.header" "${RESPONSE_FILE}.data"
       # Dropbox does not support transparent compression. I tried compressed --header 'Content-Type: application/gzip'
       "${CURL_BIN}" ${CURL_ACCEPT_CERTIFICATES} ${CURL_PARAMETERS} -X 'POST' --globoff -D "${RESPONSE_FILE}.header" -o "${RESPONSE_FILE}.data" \
         --header "Authorization: Bearer ${CFG_ACCESS_TOKEN}" \
@@ -696,22 +698,37 @@ db_simple_upload_file()
     check_http_response
 
     #Check
-    if grep -q '^HTTP/1.1 200 OK' "${RESPONSE_FILE}.header"; then
-      db_print 1 0 '' ' DONE\n'
-      if [ "${DELETE_AFTER_PUTGET}" -ne 0 ]; then
-        rm -f "${FILE_SRC}"HTTP/1.1 500 Internal Server Error
-        db_print 0 0 '' " > Deleted ${FILE_SRC}\n"
+    #echo "HTTP/1.1 500 Internal Server Error" > "${RESPONSE_FILE}.header"
+    #rm -f "${RESPONSE_FILE}.header" "${RESPONSE_FILE}.data"
+    if [ "${UPLOAD_ERROR}" -le 2 ] && ( [ ! -s "${RESPONSE_FILE}.header" ] || grep -q '^HTTP/1.1 500 Internal Server Error' "${RESPONSE_FILE}.header" ); then
+      if [ ! -s "${RESPONSE_FILE}.header" ]; then
+        echo >> 'Retry blank header' # DEBUG_LINE figure out why some uploads are failing
+      else
+        echo >> 'Retry header' # DEBUG_LINE figure out why some uploads are failing
+        cat "${RESPONSE_FILE}.header" >> '/tmp/du_resp_debug_upload' # DEBUG_LINE figure out why some uploads are failing
       fi
-    # This hasn't been checked for APIv1
-    elif  [ "${UPLOAD_ERROR}" -le 2 ] && grep -q '^HTTP/1.1 500 Internal Server Error' "${RESPONSE_FILE}.header"; then
       let UPLOAD_ERROR=${UPLOAD_ERROR}+1
       if [ "${DEBUG}" -ne 0 ]; then
         echo "Error ${UPLOAD_ERROR}, waiting 3" 1>&2
       fi
       sleep 3
       continue
+    elif grep -q '^HTTP/1.1 200 OK' "${RESPONSE_FILE}.header"; then
+      db_print 1 0 '' ' DONE\n'
+      if [ "${DELETE_AFTER_PUTGET}" -ne 0 ]; then
+        rm -f "${FILE_SRC}"
+        db_print 0 0 '' " > Deleted ${FILE_SRC}\n"
+      fi
+    # This hasn't been checked for APIv1
     else
-      cat "${RESPONSE_FILE}.header" "${RESPONSE_FILE}.data" >> '/tmp/du_resp_debug_upload' # DEBUG_LINE figure out why some uploads are failing
+      if [ ! -s "${RESPONSE_FILE}.header" ]; then
+        echo >> 'Blank header' # DEBUG_LINE figure out why some uploads are failing
+      fi
+      cat "${RESPONSE_FILE}.header" >> '/tmp/du_resp_debug_upload' # DEBUG_LINE figure out why some uploads are failing
+      if [ -s "${RESPONSE_FILE}.data" ]; then
+        cat "${RESPONSE_FILE}.data" >> '/tmp/du_resp_debug_upload' # DEBUG_LINE figure out why some uploads are failing
+        echo >> '/tmp/du_resp_debug_upload' # DEBUG_LINE figure out why some uploads are failing
+      fi
       db_print 1 0 '' ' FAILED\n'
       db_print 0 0 '' 'An error occurred requesting /upload\n'
       ERROR_STATUS=1
