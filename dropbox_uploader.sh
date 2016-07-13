@@ -84,6 +84,7 @@ APIV1_MKDIR_URL='https://api.dropbox.com/1/fileops/create_folder'
 APIV2_MKDIR_URL='https://api.dropboxapi.com/2/files/create_folder'
 APIV1_SHARES_URL='https://api.dropbox.com/1/shares'
 APIV2_SHARES_URL='https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings'
+APIV2_SHARES_URL_OLD='https://api.dropboxapi.com/2/sharing/create_shared_link'
 APP_CREATE_URL='https://www.dropbox.com/developers/apps'
 RESPONSE_FILE="${TMP_DIR}/du_resp.$$_${RANDOM}"
 #CHUNK_FILE="${TMP_DIR}/du_chunk.$$_${RANDOM}"
@@ -667,44 +668,56 @@ db_simple_upload_file()
   local FILE_DST="$(normalize_path "$2")"
 
   if [ "${SHOW_PROGRESSBAR}" -eq 1 ] && [ "${QUIET}" -eq 0 ]; then
-    CURL_PARAMETERS='--progress-bar'
-    LINE_CR='\n'
+    local CURL_PARAMETERS='--progress-bar'
+    local LINE_CR='\n'
   else
-    CURL_PARAMETERS='-s'
-    LINE_CR=''
+    local CURL_PARAMETERS='-s'
+    local LINE_CR=''
   fi
 
   if [ ! -z "${LOGFILE}" ]; then
     db_print 4 0 '' "${FILE_SRC} -> ${CONFIG_FILE_BASE}:/${FILE_DST} 0-$(file_size "${FILE_SRC}")"
   fi
   db_print 0 0 '' " > Uploading \"${FILE_SRC}\" to \"${FILE_DST}\"... ${LINE_CR}"
-  if [ "${CFG_APIVER}" -eq 1 ]; then
-    "${CURL_BIN}" ${CURL_ACCEPT_CERTIFICATES} ${CURL_PARAMETERS} --globoff -D "${RESPONSE_FILE}.header" -o "${RESPONSE_FILE}.data" --upload-file "${FILE_SRC}" "${APIV1_UPLOAD_URL}/${ACCESS_LEVEL}/$(urlencode "${FILE_DST}")?oauth_consumer_key=${APPKEY}&oauth_token=${OAUTH_ACCESS_TOKEN}&oauth_signature_method=PLAINTEXT&oauth_signature=${APPSECRET}%26${OAUTH_ACCESS_TOKEN_SECRET}&oauth_timestamp=$(utime)&oauth_nonce=${RANDOM}"
-  elif [ "${CFG_APIVER}" -eq 2 ]; then
-    # Dropbox does not support transparent compression. I tried compressed --header 'Content-Type: application/gzip'
-    "${CURL_BIN}" ${CURL_ACCEPT_CERTIFICATES} ${CURL_PARAMETERS} -X 'POST' --globoff -D "${RESPONSE_FILE}.header" -o "${RESPONSE_FILE}.data" \
-      --header "Authorization: Bearer ${CFG_ACCESS_TOKEN}" \
-      --header 'Dropbox-API-Arg: {"path": "'"${FILE_DST}"'","mode": "overwrite","autorename": false,"mute": false}' \
-      --header 'Content-Type: application/octet-stream' \
-      --upload-file "${FILE_SRC}" \
-      "${APIV2_UPLOAD_URL}"
-      # --data-binary "@${FILE_SRC}"
-  fi
-  check_http_response
-
-  #Check
-  if grep -q '^HTTP/1.1 200 OK' "${RESPONSE_FILE}.header"; then
-    db_print 1 0 '' ' DONE\n'
-    if [ "${DELETE_AFTER_PUTGET}" -ne 0 ]; then
-      rm -f "${FILE_SRC}"
-      db_print 0 0 '' " > Deleted ${FILE_SRC}\n"
+  local UPLOAD_ERROR=0
+  while :; do
+    if [ "${CFG_APIVER}" -eq 1 ]; then
+      "${CURL_BIN}" ${CURL_ACCEPT_CERTIFICATES} ${CURL_PARAMETERS} --globoff -D "${RESPONSE_FILE}.header" -o "${RESPONSE_FILE}.data" --upload-file "${FILE_SRC}" "${APIV1_UPLOAD_URL}/${ACCESS_LEVEL}/$(urlencode "${FILE_DST}")?oauth_consumer_key=${APPKEY}&oauth_token=${OAUTH_ACCESS_TOKEN}&oauth_signature_method=PLAINTEXT&oauth_signature=${APPSECRET}%26${OAUTH_ACCESS_TOKEN_SECRET}&oauth_timestamp=$(utime)&oauth_nonce=${RANDOM}"
+    elif [ "${CFG_APIVER}" -eq 2 ]; then
+      # Dropbox does not support transparent compression. I tried compressed --header 'Content-Type: application/gzip'
+      "${CURL_BIN}" ${CURL_ACCEPT_CERTIFICATES} ${CURL_PARAMETERS} -X 'POST' --globoff -D "${RESPONSE_FILE}.header" -o "${RESPONSE_FILE}.data" \
+        --header "Authorization: Bearer ${CFG_ACCESS_TOKEN}" \
+        --header 'Dropbox-API-Arg: {"path": "'"${FILE_DST}"'","mode": "overwrite","autorename": false,"mute": false}' \
+        --header 'Content-Type: application/octet-stream' \
+        --upload-file "${FILE_SRC}" \
+        "${APIV2_UPLOAD_URL}"
+        # --data-binary "@${FILE_SRC}"
     fi
-  else
-    cat "${RESPONSE_FILE}.header" "${RESPONSE_FILE}.data" >> '/tmp/du_resp_debug_upload' # DEBUG_LINE figure out why some uploads are failing
-    db_print 1 0 '' ' FAILED\n'
-    db_print 0 0 '' 'An error occurred requesting /upload\n'
-    ERROR_STATUS=1
-  fi
+    check_http_response
+
+    #Check
+    if grep -q '^HTTP/1.1 200 OK' "${RESPONSE_FILE}.header"; then
+      db_print 1 0 '' ' DONE\n'
+      if [ "${DELETE_AFTER_PUTGET}" -ne 0 ]; then
+        rm -f "${FILE_SRC}"HTTP/1.1 500 Internal Server Error
+        db_print 0 0 '' " > Deleted ${FILE_SRC}\n"
+      fi
+    # This hasn't been checked for APIv1
+    elif  [ "${UPLOAD_ERROR}" -le 2 ] && grep -q '^HTTP/1.1 500 Internal Server Error' "${RESPONSE_FILE}.header"; then
+      let UPLOAD_ERROR=${UPLOAD_ERROR}+1
+      if [ "${DEBUG}" -ne 0 ]; then
+        echo "Error ${UPLOAD_ERROR}, waiting 3" 1>&2
+      fi
+      sleep 3
+      continue
+    else
+      cat "${RESPONSE_FILE}.header" "${RESPONSE_FILE}.data" >> '/tmp/du_resp_debug_upload' # DEBUG_LINE figure out why some uploads are failing
+      db_print 1 0 '' ' FAILED\n'
+      db_print 0 0 '' 'An error occurred requesting /upload\n'
+      ERROR_STATUS=1
+    fi
+    break
+  done
 }
 
 #Chunked file upload
@@ -1654,11 +1667,20 @@ dbtop_share()
   if [ "${CFG_APIVER}" -eq 1 ]; then
     "${CURL_BIN}" ${CURL_ACCEPT_CERTIFICATES} -s --show-error --globoff -D "${RESPONSE_FILE}.header" -o "${RESPONSE_FILE}.data" "$APIV1_SHARES_URL/${ACCESS_LEVEL}/$(urlencode "${FILE_DST}")?oauth_consumer_key=${APPKEY}&oauth_token=${OAUTH_ACCESS_TOKEN}&oauth_signature_method=PLAINTEXT&oauth_signature=${APPSECRET}%26${OAUTH_ACCESS_TOKEN_SECRET}&oauth_timestamp=$(utime)&oauth_nonce=${RANDOM}&short_url=${SHORT_URL}" 2> /dev/null
   elif [ "${CFG_APIVER}" -eq 2 ]; then
-    "${CURL_BIN}" ${CURL_ACCEPT_CERTIFICATES} -X 'POST' -s --show-error --globoff -D "${RESPONSE_FILE}.header" -o "${RESPONSE_FILE}.data" \
-      --header "Authorization: Bearer ${CFG_ACCESS_TOKEN}" \
-      --header 'Content-Type: application/json' \
-      --data '{"path": "'"${FILE_DST}"'","settings": {"requested_visibility": "public"}}' \
-      "${APIV2_SHARES_URL}" 2> /dev/null
+    if [ "${SHORT_URL}" = 'true' ]; then
+      # We use the deprecated API to get the short URL.
+      "${CURL_BIN}" ${CURL_ACCEPT_CERTIFICATES} -X 'POST' -s --show-error --globoff -D "${RESPONSE_FILE}.header" -o "${RESPONSE_FILE}.data" \
+        --header "Authorization: Bearer ${CFG_ACCESS_TOKEN}" \
+        --header 'Content-Type: application/json' \
+        --data '{"path": "'"${FILE_DST}"'","short_url": true}' \
+        "${APIV2_SHARES_URL_OLD}" 2> /dev/null
+   else
+      "${CURL_BIN}" ${CURL_ACCEPT_CERTIFICATES} -X 'POST' -s --show-error --globoff -D "${RESPONSE_FILE}.header" -o "${RESPONSE_FILE}.data" \
+        --header "Authorization: Bearer ${CFG_ACCESS_TOKEN}" \
+        --header 'Content-Type: application/json' \
+        --data '{"path": "'"${FILE_DST}"'","settings": {"requested_visibility": "public"}}' \
+        "${APIV2_SHARES_URL}" 2> /dev/null
+    fi
   fi
   check_http_response
 
